@@ -30,6 +30,9 @@
   --warn-bg:#FBF0D9;
   --warn-ink:#6B4A06;
   --on-color:#FFFFFF;
+  --meter:#F2C14E;--meter-edge:#B98A16;--meter-ink:#1B1A12;
+  --lcd-bg:#C7D1BF;--lcd-ink:#121A14;
+  --lead-red:#D23A2F;--lead-blk:#1E2420;
   --f-display:"Barlow Condensed","Roboto Condensed","sans-serif-condensed","Arial Narrow",Arial,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
@@ -38,12 +41,14 @@
   :root:not([data-theme="light"]){
     --bg:#0E1210;--card:#161B18;--ink:#E8EDE9;--muted:#9AA59E;--rule:#2B332E;--soft:#1D2420;
     --up:#55C584;--down:#F27D62;--warn-bg:#2E2512;--warn-ink:#F2CF85;--on-color:#0E1210;
+    --meter:#D7A93A;--meter-edge:#8E6C1E;--lcd-bg:#B9C4B1;--lead-red:#F0675B;--lead-blk:#CDD5CF;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0E1210;--card:#161B18;--ink:#E8EDE9;--muted:#9AA59E;--rule:#2B332E;--soft:#1D2420;
   --up:#55C584;--down:#F27D62;--warn-bg:#2E2512;--warn-ink:#F2CF85;--on-color:#0E1210;
+  --meter:#D7A93A;--meter-edge:#8E6C1E;--lcd-bg:#B9C4B1;--lead-red:#F0675B;--lead-blk:#CDD5CF;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -133,6 +138,58 @@ h1{
 .line b{font-family:var(--f-num);font-weight:600}
 .warn{margin:0;font-size:13.5px;background:var(--warn-bg);color:var(--warn-ink);border-radius:6px;padding:8px 10px}
 
+/* View tabs */
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;background:var(--soft);border:1px solid var(--rule);border-radius:8px}
+.tab{font:600 14px/1 var(--f-body);padding:10px 8px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 0 0 1px var(--rule)}
+.tab:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.view{display:flex;flex-direction:column;gap:14px}
+
+/* Loop view */
+.loop{width:100%;height:auto;display:block}
+.loop text{font-family:var(--f-body);font-size:11px;fill:var(--ink)}
+.loop .t-name{font-size:12px;font-weight:600}
+.loop .t-sm{font-size:10.5px;fill:var(--muted)}
+.loop .t-val{font-family:var(--f-num);font-size:15px;font-weight:600}
+.loop .t-lcd{font-family:var(--f-num);font-size:18px;font-weight:600;fill:var(--lcd-ink)}
+.loop .t-lcds{font-size:9.5px;font-weight:600;fill:var(--lcd-ink)}
+.loop .t-meter{font-family:var(--f-display);font-size:17px;font-weight:700;fill:var(--meter-ink)}
+.loop .t-meter-sm{font-size:9.5px;font-weight:600;fill:var(--meter-ink)}
+.flow{fill:none;stroke:var(--card);stroke-width:2.6;stroke-linecap:round;stroke-dasharray:0.1 9;animation:flow 1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-9.1}}
+@media (prefers-reduced-motion: reduce){.flow{animation:none}}
+.readout{background:var(--soft);border:1px solid var(--rule);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.lrow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{font:700 11.5px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;padding:6px 9px;border-radius:999px;border:1.5px solid currentColor}
+.badge.adds{color:var(--up)}
+.badge.drains{color:var(--down)}
+.badge.off{color:var(--muted)}
+.status{font:600 13px/1.2 var(--f-body);padding:6px 9px;border-radius:6px}
+.status.trip{background:var(--ink);color:var(--card)}
+.status.go{color:var(--muted);padding-right:0}
+.status.fault{background:var(--warn-bg);color:var(--warn-ink)}
+.hint{margin:0;font-size:14px;line-height:1.4;border-left:3px solid var(--ink);padding:4px 0 4px 10px}
+.ctl{display:flex;flex-direction:column;gap:12px}
+.switch{display:flex;align-items:center;gap:12px;font:600 15px/1.2 var(--f-body);color:var(--ink);background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;cursor:pointer;text-align:left}
+.knob{flex:none;width:44px;height:26px;border-radius:999px;background:var(--rule);position:relative;transition:background .15s}
+.knob::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
+.switch[aria-pressed="true"] .knob{background:var(--ink)}
+.switch[aria-pressed="true"] .knob::after{left:21px}
+.segrow{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rule);border-radius:8px;overflow:hidden;min-width:0;flex:0 1 230px}
+.seg button{font:600 14px/1 var(--f-body);padding:11px 6px;border:0;background:var(--card);color:var(--muted);cursor:pointer}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+.rule{margin:-4px 0 0}
+.bl{font-family:var(--f-body);font-size:19px;font-weight:600}
+.sl{display:flex;flex-direction:column;gap:4px}
+.sl input[type=range]{width:100%;margin:0;height:34px;accent-color:var(--ink)}
+.slv{font:600 14px/1 var(--f-num);color:var(--ink)}
+.nudge{display:flex;gap:6px;flex-wrap:wrap}
+.nudge button{font:600 14px/1 var(--f-num);padding:10px 0;width:52px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink);cursor:pointer}
+.nudge .ans{font-family:var(--f-body);width:auto;flex:1 1 auto;padding:10px 10px;background:var(--soft)}
+.switch:focus-visible,.seg button:focus-visible,.nudge button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
 @media (max-width:330px){ .grid2{grid-template-columns:1fr} }
 </style>
 </head>
@@ -143,6 +200,12 @@ h1{
     <p class="sub">4–20 mA, loop stays closed, 789 on mA SOURCE</p>
   </header>
 
+  <div class="tabs" role="tablist" aria-label="View">
+    <button type="button" role="tab" class="tab" id="t-calc" aria-selected="true">Calculator</button>
+    <button type="button" role="tab" class="tab" id="t-loop" aria-selected="false">Loop view</button>
+  </div>
+
+  <section class="view" id="v-calc">
   <div class="chips" role="group" aria-label="Units">
     <button type="button" class="chip" data-unit="%" aria-pressed="false">%</button>
     <button type="button" class="chip" data-unit="kPa" aria-pressed="true">kPa</button>
@@ -209,13 +272,67 @@ h1{
     <p class="line clip" id="r-clip">Clip on: PLC drops to <b>16.00</b> first.</p>
     <p class="warn" id="r-warn" hidden></p>
   </div>
+  </section>
+
+  <section class="view" id="v-loop" hidden>
+    <svg class="loop" id="loop" viewBox="0 0 360 282" role="img" aria-label="Loop diagram: PLC input card, transmitter and the 789 clipped on"></svg>
+
+    <div class="readout" aria-live="polite">
+      <div class="lrow">
+        <span class="badge off" id="l-badge">789 not clipped on</span>
+        <span class="status" id="l-status"></span>
+      </div>
+      <div class="big"><span class="bl">Card sees</span> <span id="l-card">12.00</span> <span class="unit">mA</span></div>
+      <div class="small" id="l-card-eu"></div>
+      <p class="eq" id="l-eq"></p>
+      <svg class="vis" id="l-line" viewBox="0 0 360 84" aria-hidden="true"></svg>
+    </div>
+
+    <p class="hint" id="l-hint"></p>
+
+    <div class="ctl">
+      <button type="button" class="switch" id="l-on" aria-pressed="false"><span class="knob" aria-hidden="true"></span><span id="l-on-txt">Clip the 789 on</span></button>
+
+      <div class="segrow">
+        <span class="lbl">Clipped at</span>
+        <div class="seg" role="group" aria-label="Where the 789 is clipped">
+          <button type="button" data-at="card" aria-pressed="true">Card</button>
+          <button type="button" data-at="tx" aria-pressed="false">Transmitter</button>
+        </div>
+      </div>
+      <div class="segrow">
+        <span class="lbl">Leads</span>
+        <div class="seg" role="group" aria-label="Lead direction">
+          <button type="button" data-lead="0" aria-pressed="false">+ to +</button>
+          <button type="button" data-lead="1" aria-pressed="true">Flipped</button>
+        </div>
+      </div>
+      <p class="small rule">At the card, + to + adds. At the transmitter, + to + drains.</p>
+
+      <div class="sl">
+        <div class="lblrow"><label class="lbl" for="l-tx">Transmitter output</label><span class="slv" id="l-tx-v">12.00 mA</span></div>
+        <input type="range" id="l-tx" min="4" max="20" step="0.01" value="12">
+      </div>
+      <div class="sl">
+        <div class="lblrow"><label class="lbl" for="l-m">789 set to</label><span class="slv" id="l-m-v">4.00 mA</span></div>
+        <input type="range" id="l-m" min="0" max="24" step="0.01" value="4">
+        <div class="nudge">
+          <button type="button" data-nudge="-1">−1</button>
+          <button type="button" data-nudge="-0.1">−0.1</button>
+          <button type="button" data-nudge="0.1">+0.1</button>
+          <button type="button" data-nudge="1">+1</button>
+          <button type="button" class="ans" id="l-ans">Set to answer</button>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script>
 (function(){
   var UNITS = ['%','kPa','psi','mm','mmH2O'];
   var KEY = 'trip789';
-  var st = {unit:'kPa', lrv:'0', urv:'600', tgt:'328', dir:'down', start:'20', smode:'ma'};
+  var st = {unit:'kPa', lrv:'0', urv:'600', tgt:'328', dir:'down', start:'20', smode:'ma', view:'calc'};
   try {
     var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved && typeof saved === 'object') {
@@ -225,6 +342,7 @@ h1{
   if (UNITS.indexOf(st.unit) < 0) st.unit = 'kPa';
   if (st.dir !== 'up' && st.dir !== 'down') st.dir = 'down';
   if (st.smode !== 'ma' && st.smode !== 'eu') st.smode = 'ma';
+  if (st.view !== 'calc' && st.view !== 'loop') st.view = 'calc';
 
   var $ = function(id){ return document.getElementById(id); };
   var FIELDS = ['lrv','urv','tgt','start'];
@@ -350,10 +468,11 @@ h1{
     out.set = f2(set) + ' <span class="unit">mA</span>';
     out.vis = true; out.down = down; out.tMa = start; out.trip = ma; out.setN = set;
     out.eq = 'Transmitter <b>' + f2(start) + '</b> ' + (down ? '−' : '+') + ' 789 <b>' + f2(set) + '</b> = <b>' + f2(ma) + '</b> at the card';
+    // The PLC jumps by whatever the 789 is set to at the moment you clip on.
     if (set >= 4 - 1e-9) {
-      out.clip = 'Clip on: PLC ' + (down ? 'drops' : 'rises') + ' to <b>' + f2(down ? start - 4 : start + 4) + '</b> first.';
+      out.clip = 'Clip on at 4.00 and the PLC ' + (down ? 'drops' : 'rises') + ' to <b>' + f2(down ? start - 4 : start + 4) + '</b> first. Clip on at 0 and nothing moves.';
     } else {
-      out.warn.push('Needs the 789 under 4 mA. If yours bottoms out at 4, the clip-on bump already goes past the trip. Use the loop test or lift a wire for this one.');
+      out.clip = 'Clip on with the 789 at <b>0</b>, then turn it up to <b>' + f2(set) + '</b>. At 4.00 the PLC would jump to <b>' + f2(down ? start - 4 : start + 4) + '</b>, past the trip.';
     }
     show(out);
   }
@@ -391,8 +510,245 @@ h1{
   });
   FIELDS.forEach(function(k){ $(k).addEventListener('input', calc); });
 
+  /* ---------------- Loop view ----------------
+     The 789 on mA SOURCE, clipped across part of a live 2-wire loop.
+     Clipped across the card input:  + to + adds,   flipped drains.
+     Clipped across the transmitter: + to + drains, flipped adds.
+     The card sees transmitter +/- 789. */
+  var ls = {on:false, at:'card', flip:true, tx:12, m:4};
+  // Where each lead can land. Card IN+ and transmitter TX- sit on the lower field wire.
+  var CLIP = {
+    cardPos:{x:164, y:96, cx:164, cy:128}, cardNeg:{x:160, y:150, cx:182, cy:150},
+    txPos:{x:222, y:40, cx:222, cy:76},    txNeg:{x:204, y:96, cx:204, cy:128}
+  };
+  var JACK = {red:{x:212, y:172}, blk:{x:184, y:172}};
+
+  function buildLoop(){
+    var W = 'stroke="var(--muted)" stroke-width="2" fill="none" stroke-linejoin="round"';
+    var dot = function(x, y){ return '<circle cx="' + x + '" cy="' + y + '" r="3.5" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5"/>'; };
+    var s = '';
+    // PLC input card, with its 24 V loop supply and input resistor
+    s += '<rect x="8" y="10" width="130" height="196" rx="8" fill="var(--card)" stroke="var(--muted)" stroke-width="1.5"/>';
+    s += '<text x="73" y="28" text-anchor="middle" class="t-name">PLC input card</text>';
+    s += '<path d="M22 60 V40 H138" ' + W + '/>';
+    s += '<path d="M138 96 H98 V108" ' + W + '/>';
+    s += '<path d="M98 138 V150 H138" ' + W + '/>';
+    s += '<path d="M98 150 V186 H22 V68" ' + W + '/>';
+    s += '<line x1="12" y1="60" x2="32" y2="60" stroke="var(--ink)" stroke-width="2.5"/>';
+    s += '<line x1="17" y1="68" x2="27" y2="68" stroke="var(--ink)" stroke-width="2.5"/>';
+    s += '<text x="36" y="68" class="t-sm">24 V</text>';
+    s += '<rect x="92" y="108" width="12" height="30" rx="2" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5"/>';
+    s += '<text x="132" y="54" text-anchor="end" class="t-sm">+24V</text>';
+    s += '<text x="132" y="91" text-anchor="end" class="t-sm">IN+</text>';
+    s += '<text x="132" y="145" text-anchor="end" class="t-sm">IN−</text>';
+    s += '<rect x="26" y="84" width="58" height="60" rx="4" fill="var(--lcd-bg)"/>';
+    s += '<text x="55" y="100" text-anchor="middle" class="t-lcds">CARD SEES</text>';
+    s += '<text id="lp-card" x="55" y="124" text-anchor="middle" class="t-lcd">12.00</text>';
+    s += '<text x="55" y="138" text-anchor="middle" class="t-lcds">mA</text>';
+    // Transmitter
+    s += '<rect x="232" y="10" width="120" height="98" rx="8" fill="var(--card)" stroke="var(--muted)" stroke-width="1.5"/>';
+    s += '<text x="296" y="30" text-anchor="middle" class="t-name">Transmitter</text>';
+    s += '<text id="lp-tx" x="296" y="60" text-anchor="middle" class="t-val">12.00 mA</text>';
+    s += '<text id="lp-txeu" x="296" y="80" text-anchor="middle" class="t-sm"></text>';
+    s += '<text x="240" y="44" class="t-sm">+</text><text x="240" y="100" class="t-sm">−</text>';
+    // Field wires and the IN− field terminal
+    s += '<path d="M138 40 H232" ' + W + '/>';
+    s += '<path d="M232 96 H138" ' + W + '/>';
+    s += '<path d="M138 150 H160" ' + W + '/>';
+    s += dot(138, 40) + dot(138, 96) + dot(138, 150) + dot(160, 150) + dot(232, 40) + dot(232, 96);
+    // Current flow dots (speed follows the current)
+    s += '<path id="lf-f1" class="flow" d="M22 60 V40 H232"/>';
+    s += '<path id="lf-f2" class="flow" d="M232 96 H98 V108"/>';
+    s += '<path id="lf-res" class="flow" d="M98 108 V138 V150 V186 H22 V68"/>';
+    // The 789
+    s += '<rect x="160" y="172" width="140" height="100" rx="14" fill="var(--meter)" stroke="var(--meter-edge)" stroke-width="1.5"/>';
+    s += '<rect x="172" y="196" width="116" height="40" rx="4" fill="var(--lcd-bg)"/>';
+    s += '<text x="178" y="209" class="t-lcds">SOURCE</text>';
+    s += '<text id="lp-m" x="282" y="229" text-anchor="end" class="t-lcd">4.00 mA</text>';
+    s += '<text x="172" y="262" class="t-meter">789</text>';
+    s += '<text x="288" y="262" text-anchor="end" class="t-meter-sm">mA OUT</text>';
+    s += '<text x="184" y="190" text-anchor="middle" class="t-meter-sm">COM</text>';
+    s += '<text x="212" y="190" text-anchor="middle" class="t-meter-sm">+</text>';
+    // Leads (drawn last so they lie on top)
+    s += '<path id="lp-blk" fill="none" stroke="var(--lead-blk)" stroke-width="3.5" stroke-linecap="round"/>';
+    s += '<path id="lp-red" fill="none" stroke="var(--lead-red)" stroke-width="3.5" stroke-linecap="round"/>';
+    s += '<path id="lf-blk" class="flow" style="stroke-width:2"/>';
+    s += '<path id="lf-red" class="flow" style="stroke-width:2"/>';
+    s += '<circle id="lp-blkclip" r="5" fill="var(--lead-blk)" stroke="var(--card)" stroke-width="1.5"/>';
+    s += '<circle id="lp-redclip" r="5" fill="var(--lead-red)" stroke="var(--card)" stroke-width="1.5"/>';
+    s += '<circle cx="' + JACK.blk.x + '" cy="' + JACK.blk.y + '" r="6" fill="var(--lead-blk)" stroke="var(--meter-edge)" stroke-width="1.5"/>';
+    s += '<circle cx="' + JACK.red.x + '" cy="' + JACK.red.y + '" r="6" fill="var(--lead-red)" stroke="var(--meter-edge)" stroke-width="1.5"/>';
+    $('loop').innerHTML = s;
+  }
+
+  function leadD(j, c){
+    return 'M' + j.x + ' ' + j.y + ' C' + j.x + ' ' + (j.y - 30) + ' ' + c.cx + ' ' + c.cy + ' ' + c.x + ' ' + c.y;
+  }
+  function setFlow(el, I, reverse){
+    if (!(I > 0.05)) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.style.animationDuration = (3.6 / Math.max(I, 0.3)).toFixed(2) + 's';
+    el.style.animationDirection = reverse ? 'reverse' : 'normal';
+  }
+  function calcInfo(){
+    var lrv = num(st.lrv), urv = num(st.urv), tgt = num(st.tgt);
+    var range = isFinite(lrv) && isFinite(urv) && lrv !== urv;
+    var info = {range:range, ok:range && isFinite(tgt), lrv:lrv, urv:urv, down:st.dir === 'down', start:startMa(lrv, urv)};
+    if (info.ok) info.trip = 4 + 16 * (tgt - lrv) / (urv - lrv);
+    return info;
+  }
+  function eu(ma, info){ return f1(info.lrv + (ma - 4) / 16 * (info.urv - info.lrv)) + (st.unit === '%' ? '%' : ' ' + st.unit); }
+
+  function drawLoopLine(info, card, adds){
+    var X = function(ma){ return 20 + (Math.min(21, Math.max(3, ma)) - 4) / 16 * 320; };
+    var L = function(x){ return Math.min(310, Math.max(50, x)); };
+    var col = !ls.on ? 'var(--muted)' : (adds ? 'var(--up)' : 'var(--down)');
+    var xt = X(ls.tx), xc = X(card), d = xc >= xt ? 1 : -1;
+    var s = '<line x1="20" y1="44" x2="340" y2="44" stroke="var(--rule)" stroke-width="2"/>';
+    [4, 8, 12, 16, 20].forEach(function(m){
+      s += '<line x1="' + X(m) + '" y1="40" x2="' + X(m) + '" y2="48" stroke="var(--rule)" stroke-width="2"/>'
+         + '<text x="' + X(m) + '" y="80" text-anchor="middle" fill="var(--muted)">' + m + '</text>';
+    });
+    if (info.ok) {
+      var xp = X(info.trip);
+      s += '<line x1="' + xp + '" y1="22" x2="' + xp + '" y2="58" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="3 3"/>'
+         + '<text x="' + L(xp) + '" y="16" text-anchor="middle" fill="var(--ink)" font-weight="600">trip ' + f2(info.trip) + '</text>';
+    }
+    if (ls.on && Math.abs(xc - xt) > 10) {
+      s += '<line x1="' + xt + '" y1="44" x2="' + (xc - 9 * d) + '" y2="44" stroke="' + col + '" stroke-width="4" stroke-linecap="round"/>'
+         + '<polygon points="' + xc + ',44 ' + (xc - 10 * d) + ',38 ' + (xc - 10 * d) + ',50" fill="' + col + '"/>';
+    }
+    s += '<circle cx="' + xt + '" cy="44" r="6" fill="var(--card)" stroke="var(--ink)" stroke-width="2"/>';
+    s += '<circle cx="' + xc + '" cy="44" r="5" fill="' + (ls.on ? col : 'var(--ink)') + '"/>';
+    s += '<text x="' + L(xc) + '" y="64" text-anchor="middle" fill="' + (ls.on ? col : 'var(--ink)') + '" font-weight="600">card ' + f2(card) + '</text>';
+    $('l-line').innerHTML = s;
+  }
+
+  function renderLoop(){
+    var info = calcInfo();
+    var adds = ls.at === 'card' ? !ls.flip : ls.flip;
+    var m = ls.on ? ls.m : 0;
+    var raw = ls.tx + (adds ? m : -m);
+    var card = Math.max(0, raw);
+
+    // Controls
+    $('l-on').setAttribute('aria-pressed', String(ls.on));
+    $('l-on-txt').textContent = ls.on ? '789 clipped on' : 'Clip the 789 on';
+    document.querySelectorAll('[data-at]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-at') === ls.at)); });
+    document.querySelectorAll('[data-lead]').forEach(function(b){ b.setAttribute('aria-pressed', String((b.getAttribute('data-lead') === '1') === ls.flip)); });
+    $('l-tx-v').textContent = f2(ls.tx) + ' mA' + (info.range ? ' = ' + eu(ls.tx, info) : '');
+    $('l-m-v').textContent = f2(ls.m) + ' mA';
+
+    // Diagram
+    $('lp-card').textContent = f2(card);
+    $('lp-tx').textContent = f2(ls.tx) + ' mA';
+    $('lp-txeu').textContent = info.range ? '= ' + eu(ls.tx, info) : '';
+    $('lp-m').textContent = f2(ls.m) + ' mA';
+    var red, blk;
+    if (!ls.on) {
+      red = 'M212 172 C212 150 300 148 314 180';
+      blk = 'M184 172 C184 138 322 132 330 194';
+      $('lp-redclip').setAttribute('cx', 314); $('lp-redclip').setAttribute('cy', 180);
+      $('lp-blkclip').setAttribute('cx', 330); $('lp-blkclip').setAttribute('cy', 194);
+    } else {
+      var pos = ls.at === 'card' ? CLIP.cardPos : CLIP.txPos, neg = ls.at === 'card' ? CLIP.cardNeg : CLIP.txNeg;
+      var rc = ls.flip ? neg : pos, bc = ls.flip ? pos : neg;
+      red = leadD(JACK.red, rc); blk = leadD(JACK.blk, bc);
+      $('lp-redclip').setAttribute('cx', rc.x); $('lp-redclip').setAttribute('cy', rc.y);
+      $('lp-blkclip').setAttribute('cx', bc.x); $('lp-blkclip').setAttribute('cy', bc.y);
+    }
+    $('lp-red').setAttribute('d', red); $('lf-red').setAttribute('d', red);
+    $('lp-blk').setAttribute('d', blk); $('lf-blk').setAttribute('d', blk);
+    $('lp-red').style.opacity = $('lp-blk').style.opacity = ls.on ? '1' : '0.55';
+    // Field wires carry the transmitter current when the 789 is on the card, the card current when it is on the transmitter.
+    var field = ls.at === 'card' ? ls.tx : card;
+    setFlow($('lf-f1'), field, false);
+    setFlow($('lf-f2'), field, false);
+    setFlow($('lf-res'), card, false);
+    setFlow($('lf-red'), m, false);   // out of the 789's + jack
+    setFlow($('lf-blk'), m, true);    // back into COM
+
+    // Readout
+    var B = $('l-badge');
+    B.className = 'badge ' + (!ls.on ? 'off' : adds ? 'adds' : 'drains');
+    B.textContent = !ls.on ? '789 not clipped on' : adds ? '789 adds to the loop' : '789 drains the loop';
+    $('l-card').textContent = f2(card);
+    $('l-card-eu').textContent = !info.range ? '' : st.unit === '%' ? '= ' + f1((card - 4) / 16 * 100) + '% of range' : '= ' + eu(card, info) + ' · ' + f1((card - 4) / 16 * 100) + '% of range';
+    $('l-eq').innerHTML = ls.on
+      ? 'Transmitter <b>' + f2(ls.tx) + '</b> ' + (adds ? '+' : '−') + ' 789 <b>' + f2(ls.m) + '</b> = <b>' + f2(card) + '</b> at the card' + (raw < 0 ? ' (it can’t go below 0)' : '')
+      : 'Transmitter <b>' + f2(ls.tx) + '</b>, 789 not connected = <b>' + f2(card) + '</b> at the card';
+
+    var fault = card < 3.8 ? 'low' : card > 20.5 ? 'high' : '';
+    var tripped = info.ok && (info.down ? card <= info.trip + 0.005 : card >= info.trip - 0.005);
+    var S = $('l-status');
+    if (fault) { S.className = 'status fault'; S.textContent = fault === 'low' ? 'Under 4 mA' : 'Over 20 mA'; }
+    else if (tripped) { S.className = 'status trip'; S.textContent = 'Tripped'; }
+    else if (info.ok) { S.className = 'status go'; S.textContent = f2(Math.abs(card - info.trip)) + ' mA to the trip'; }
+    else { S.className = 'status'; S.textContent = ''; }
+
+    // What to do next
+    var ans = info.ok ? (info.down ? ls.tx - info.trip : info.trip - ls.tx) : NaN;
+    var matches = adds === !info.down;
+    var hint;
+    if (!info.ok) hint = 'Set the range and trip on the Calculator tab to see where it trips.';
+    else if (ans < -0.005) hint = info.down
+      ? 'The transmitter is already below the trip. Slide it up, or pick Going up on the Calculator.'
+      : 'The transmitter is already above the trip. Slide it down, or pick Going down on the Calculator.';
+    else if (!ls.on) hint = (matches && ans < ls.m - 0.005)
+      ? 'Turn the 789 down to 0, then clip on. Clipped on at ' + f2(ls.m) + ', the card jumps straight past the trip.'
+      : 'Clip on. The card jumps by whatever the 789 is set to, ' + f2(ls.m) + ' now.';
+    else if (!matches) hint = 'This setup ' + (adds ? 'adds' : 'drains') + ', but your trip is going ' + (info.down ? 'down' : 'up') + '. Flip the leads.';
+    else if (fault) hint = 'The card is ' + (fault === 'low' ? 'under 4' : 'over 20') + ' mA. The PLC may call that a fault, not a trip.';
+    else if (tripped) hint = Math.abs(ls.m - ans) < 0.05
+      ? 'Tripped. The 789 shows ' + f2(ls.m) + ', the same number the calculator gives.'
+      : 'Tripped. You went past it: the exact trip is at 789 = ' + f2(ans) + '.';
+    else hint = 'Turn the 789 up' + (adds ? '' : ' and the card goes down') + '. ' + f2(ans - ls.m) + ' mA more on the 789 to the trip.';
+    $('l-hint').textContent = hint;
+
+    var A = $('l-ans');
+    if (info.ok && ans >= 0 && matches && ans <= 24) { A.hidden = false; A.textContent = 'Set to ' + f2(ans); A.dataset.v = f2(ans); }
+    else A.hidden = true;
+
+    drawLoopLine(info, card, adds);
+  }
+
+  function loopInit(){
+    var info = calcInfo();
+    ls.on = false; ls.at = 'card'; ls.flip = info.down; ls.m = 4;
+    ls.tx = isFinite(info.start) ? Math.round(Math.min(20, Math.max(4, info.start)) * 100) / 100 : 12;
+    $('l-tx').value = ls.tx; $('l-m').value = ls.m;
+    renderLoop();
+  }
+  function setM(v){ ls.m = Math.round(Math.min(24, Math.max(0, v)) * 100) / 100; $('l-m').value = ls.m; renderLoop(); }
+
+  function showView(v){
+    st.view = v; save();
+    $('t-calc').setAttribute('aria-selected', String(v === 'calc'));
+    $('t-loop').setAttribute('aria-selected', String(v === 'loop'));
+    $('v-calc').hidden = v !== 'calc';
+    $('v-loop').hidden = v !== 'loop';
+    if (v === 'loop') loopInit();
+  }
+  $('t-calc').addEventListener('click', function(){ showView('calc'); });
+  $('t-loop').addEventListener('click', function(){ showView('loop'); });
+  $('l-on').addEventListener('click', function(){ ls.on = !ls.on; renderLoop(); });
+  document.querySelectorAll('[data-at]').forEach(function(b){
+    b.addEventListener('click', function(){ ls.at = b.getAttribute('data-at'); renderLoop(); });
+  });
+  document.querySelectorAll('[data-lead]').forEach(function(b){
+    b.addEventListener('click', function(){ ls.flip = b.getAttribute('data-lead') === '1'; renderLoop(); });
+  });
+  $('l-tx').addEventListener('input', function(){ ls.tx = Number($('l-tx').value); renderLoop(); });
+  $('l-m').addEventListener('input', function(){ ls.m = Number($('l-m').value); renderLoop(); });
+  document.querySelectorAll('[data-nudge]').forEach(function(b){
+    b.addEventListener('click', function(){ setM(ls.m + Number(b.getAttribute('data-nudge'))); });
+  });
+  $('l-ans').addEventListener('click', function(){ setM(Number($('l-ans').dataset.v)); });
+
+  buildLoop();
   applyUI();
   calc();
+  showView(st.view);
 })();
 </script>
 <script>
