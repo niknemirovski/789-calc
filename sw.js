@@ -1,5 +1,5 @@
 /* 789 Trip Calculator - offline cache. Bump VERSION whenever any file changes. */
-const VERSION = '789calc-v1';
+const VERSION = '789calc-v2';
 const ASSETS = [
   './',
   './index.html',

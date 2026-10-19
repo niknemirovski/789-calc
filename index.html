@@ -75,6 +75,14 @@ h1{
 }
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
 
+.lblrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mini{display:flex;gap:4px}
+.mchip{
+  font:600 12px/1 var(--f-body);padding:6px 9px;border-radius:999px;
+  border:1px solid var(--rule);background:var(--card);color:var(--ink);cursor:pointer;
+}
+.mchip[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.mchip:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 .inwrap{
@@ -171,11 +179,18 @@ h1{
   </div>
 
   <div class="field">
-    <label class="lbl" for="start">Transmitter sitting at</label>
+    <div class="lblrow">
+      <label class="lbl" for="start">Transmitter sitting at</label>
+      <div class="mini" role="group" aria-label="Transmitter reading units">
+        <button type="button" class="mchip" data-smode="ma" aria-pressed="true">mA</button>
+        <button type="button" class="mchip" data-smode="eu" aria-pressed="false"><span class="u-lbl">kPa</span></button>
+      </div>
+    </div>
     <div class="inwrap">
       <input id="start" type="text" inputmode="decimal" autocomplete="off" value="20">
-      <span class="u">mA</span>
+      <span class="u" id="start-u">mA</span>
     </div>
+    <div class="small" id="start-conv" hidden></div>
   </div>
 
   <div class="result down" id="result" aria-live="polite">
@@ -197,7 +212,7 @@ h1{
 (function(){
   var UNITS = ['%','kPa','psi','mm','mmH2O'];
   var KEY = 'trip789';
-  var st = {unit:'kPa', lrv:'0', urv:'600', tgt:'328', dir:'down', start:'20'};
+  var st = {unit:'kPa', lrv:'0', urv:'600', tgt:'328', dir:'down', start:'20', smode:'ma'};
   try {
     var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved && typeof saved === 'object') {
@@ -206,6 +221,7 @@ h1{
   } catch (e) {}
   if (UNITS.indexOf(st.unit) < 0) st.unit = 'kPa';
   if (st.dir !== 'up' && st.dir !== 'down') st.dir = 'down';
+  if (st.smode !== 'ma' && st.smode !== 'eu') st.smode = 'ma';
 
   var $ = function(id){ return document.getElementById(id); };
   var FIELDS = ['lrv','urv','tgt','start'];
@@ -228,6 +244,24 @@ h1{
     document.querySelectorAll('.u-lbl').forEach(function(el){ el.textContent = st.unit; });
     $('d-up').setAttribute('aria-pressed', String(st.dir === 'up'));
     $('d-down').setAttribute('aria-pressed', String(st.dir === 'down'));
+    document.querySelectorAll('[data-smode]').forEach(function(b){
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-smode') === st.smode));
+    });
+    $('start-u').textContent = st.smode === 'eu' ? st.unit : 'mA';
+  }
+  // The transmitter reading in mA, whichever way it was typed.
+  function startMa(lrv, urv){
+    var v = num(st.start);
+    if (!isFinite(v)) return NaN;
+    return st.smode === 'eu' ? 4 + 16 * (v - lrv) / (urv - lrv) : v;
+  }
+  function showConv(lrv, urv){
+    var C = $('start-conv'), v = num(st.start);
+    if (!isFinite(v) || !isFinite(lrv) || !isFinite(urv) || lrv === urv) { C.hidden = true; return; }
+    C.textContent = st.smode === 'eu'
+      ? '= ' + f2(startMa(lrv, urv)) + ' mA'
+      : '= ' + f1(lrv + (v - 4) / 16 * (urv - lrv)) + ' ' + st.unit;
+    C.hidden = false;
   }
 
   function show(o){
@@ -246,8 +280,10 @@ h1{
   function calc(){
     FIELDS.forEach(function(k){ st[k] = $(k).value; });
     save();
-    var lrv = num(st.lrv), urv = num(st.urv), tgt = num(st.tgt), start = num(st.start);
+    var lrv = num(st.lrv), urv = num(st.urv), tgt = num(st.tgt);
     var down = st.dir === 'down';
+    showConv(lrv, urv);
+    var start = startMa(lrv, urv);
     if (!isFinite(lrv) || !isFinite(urv)) return show({ma:'—', pct:'Enter the range low and high.', set:'—'});
     if (lrv === urv) return show({ma:'—', pct:'Range low and high can’t be the same.', set:'—'});
     if (!isFinite(tgt)) return show({ma:'—', pct:'Enter the trip value.', set:'—'});
@@ -302,8 +338,22 @@ h1{
       calc();
     });
   });
-  $('d-up').addEventListener('click', function(){ st.dir = 'up'; $('start').value = '4'; applyUI(); calc(); });
-  $('d-down').addEventListener('click', function(){ st.dir = 'down'; $('start').value = '20'; applyUI(); calc(); });
+  $('d-up').addEventListener('click', function(){ st.dir = 'up'; $('start').value = st.smode === 'eu' ? $('lrv').value : '4'; applyUI(); calc(); });
+  $('d-down').addEventListener('click', function(){ st.dir = 'down'; $('start').value = st.smode === 'eu' ? $('urv').value : '20'; applyUI(); calc(); });
+  document.querySelectorAll('[data-smode]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var mode = b.getAttribute('data-smode');
+      if (mode === st.smode) return;
+      // Keep the same reading, just show it the other way.
+      var lrv = num($('lrv').value), urv = num($('urv').value), v = num($('start').value);
+      if (isFinite(v) && isFinite(lrv) && isFinite(urv) && lrv !== urv) {
+        $('start').value = mode === 'eu'
+          ? String(Math.round((lrv + (v - 4) / 16 * (urv - lrv)) * 100) / 100)
+          : String(Math.round((4 + 16 * (v - lrv) / (urv - lrv)) * 100) / 100);
+      }
+      st.smode = mode; applyUI(); calc();
+    });
+  });
   FIELDS.forEach(function(k){ $(k).addEventListener('input', calc); });
 
   applyUI();
