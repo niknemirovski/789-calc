@@ -122,6 +122,11 @@ h1{
 .small{font-size:13px;color:var(--muted)}
 .result.up .huge{color:var(--up)}
 .result.down .huge{color:var(--down)}
+.vis{width:100%;height:auto;display:block}
+.vis text{font-family:var(--f-num);font-size:11px;font-weight:500}
+.eq{margin:0;font-size:14px}
+.eq b{font-family:var(--f-num);font-weight:600}
+.small b{font-family:var(--f-num);font-weight:600;color:var(--ink)}
 .line{margin:0;font-size:14px}
 .clip{border-top:1px solid var(--rule);padding-top:10px}
 [hidden]{display:none !important}
@@ -195,14 +200,12 @@ h1{
 
   <div class="result down" id="result" aria-live="polite">
     <div>
-      <div class="lbl">PLC needs</div>
-      <div class="big"><span id="r-ma">12.75</span> <span class="unit">mA</span></div>
-      <div class="small" id="r-pct">54.7% of range</div>
-    </div>
-    <div>
       <div class="lbl">Set the 789 to</div>
       <div class="huge" id="r-set">7.25 <span class="unit">mA</span></div>
     </div>
+    <svg class="vis" id="vis" viewBox="0 0 360 84" aria-hidden="true"></svg>
+    <p class="eq" id="r-eq"></p>
+    <div class="small" id="r-trip"><span id="r-triplbl">Trip point <b id="r-ma">12.75</b> mA · </span><span id="r-pct">54.7% of range</span></div>
     <p class="line clip" id="r-clip">Clip on: PLC drops to <b>16.00</b> first.</p>
     <p class="warn" id="r-warn" hidden></p>
   </div>
@@ -264,12 +267,42 @@ h1{
     C.hidden = false;
   }
 
+  // The 4-20 line: transmitter marker, trip marker, and the arrow the 789 makes between them.
+  function drawVis(o){
+    var V = $('vis');
+    if (!o.vis) { V.hidden = true; return; }
+    V.hidden = false;
+    var X = function(ma){ return 20 + (Math.min(20.5, Math.max(3.5, ma)) - 4) / 16 * 320; };
+    var col = o.down ? 'var(--down)' : 'var(--up)';
+    var xt = X(o.tMa), xp = X(o.trip), d = xp >= xt ? 1 : -1;
+    var L = function(x){ return Math.min(300, Math.max(60, x)); }; // keep labels inside the frame
+    var s = '<line x1="20" y1="44" x2="340" y2="44" stroke="var(--rule)" stroke-width="2"/>';
+    [4, 8, 12, 16, 20].forEach(function(m){
+      s += '<line x1="' + X(m) + '" y1="40" x2="' + X(m) + '" y2="48" stroke="var(--rule)" stroke-width="2"/>'
+         + '<text x="' + X(m) + '" y="80" text-anchor="middle" fill="var(--muted)">' + m + '</text>';
+    });
+    if (Math.abs(xp - xt) > 10) {
+      s += '<line x1="' + xt + '" y1="44" x2="' + (xp - 9 * d) + '" y2="44" stroke="' + col + '" stroke-width="4" stroke-linecap="round"/>'
+         + '<polygon points="' + xp + ',44 ' + (xp - 10 * d) + ',38 ' + (xp - 10 * d) + ',50" fill="' + col + '"/>';
+    }
+    s += '<text x="' + ((xt + xp) / 2) + '" y="64" text-anchor="middle" fill="' + col + '" font-weight="600">789 ' + (o.down ? '−' : '+') + f2(o.setN) + '</text>';
+    s += '<circle cx="' + xt + '" cy="44" r="6" fill="var(--card)" stroke="var(--ink)" stroke-width="2"/>'
+       + '<text x="' + L(xt) + '" y="14" text-anchor="middle" fill="var(--ink)">transmitter ' + f2(o.tMa) + '</text>';
+    s += '<circle cx="' + xp + '" cy="44" r="6" fill="' + col + '"/>'
+       + '<text x="' + L(xp) + '" y="30" text-anchor="middle" fill="' + col + '" font-weight="600">trip ' + f2(o.trip) + '</text>';
+    V.innerHTML = s;
+  }
+
   function show(o){
     var R = $('result');
     R.className = 'result ' + (o.cls || 'none');
     $('r-ma').textContent = o.ma;
     $('r-pct').textContent = o.pct;
+    $('r-triplbl').hidden = (o.ma === '—');
     $('r-set').innerHTML = o.set;
+    $('r-eq').innerHTML = o.eq || '';
+    $('r-eq').hidden = !o.eq;
+    drawVis(o);
     $('r-clip').innerHTML = o.clip || '';
     $('r-clip').hidden = !o.clip;
     var W = $('r-warn');
@@ -290,7 +323,7 @@ h1{
 
     var frac = (tgt - lrv) / (urv - lrv);
     var ma = 4 + 16 * frac;
-    var out = {ma:f2(ma), pct:f1(frac * 100) + '% of range', warn:[]};
+    var out = {ma:f2(ma), pct:f1(frac * 100) + '% of range. The card must see this to trip.', warn:[]};
     if (ma < 4 - 1e-9 || ma > 20 + 1e-9) {
       out.warn.push('That trip is outside the range. The PLC will see under 4 or over 20 mA and may call it a fault.');
     }
@@ -315,6 +348,8 @@ h1{
 
     out.cls = down ? 'down' : 'up';
     out.set = f2(set) + ' <span class="unit">mA</span>';
+    out.vis = true; out.down = down; out.tMa = start; out.trip = ma; out.setN = set;
+    out.eq = 'Transmitter <b>' + f2(start) + '</b> ' + (down ? '−' : '+') + ' 789 <b>' + f2(set) + '</b> = <b>' + f2(ma) + '</b> at the card';
     if (set >= 4 - 1e-9) {
       out.clip = 'Clip on: PLC ' + (down ? 'drops' : 'rises') + ' to <b>' + f2(down ? start - 4 : start + 4) + '</b> first.';
     } else {
